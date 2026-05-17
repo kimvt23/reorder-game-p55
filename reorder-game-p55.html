@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kids Sentence Reorder Game</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Comic Sans MS', cursive;
+}
+
+body{
+    overflow:hidden;
+    height:100vh;
+    background:linear-gradient(135deg,#ffd6f6,#d6f7ff,#fff7b2);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+}
+
+/* Floating Background Bubbles */
+
+.bubble{
+    position:absolute;
+    border-radius:50%;
+    opacity:0.25;
+    animation:float 15s linear infinite;
+}
+
+@keyframes float{
+    from{
+        transform:translateY(110vh) rotate(0deg);
+    }
+    to{
+        transform:translateY(-120vh) rotate(360deg);
+    }
+}
+
+.game-container{
+    width:90%;
+    max-width:1100px;
+    background:rgba(255,255,255,0.93);
+    border-radius:35px;
+    padding:25px;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    z-index:10;
+    position:relative;
+}
+
+h1{
+    color:#ff4da6;
+    margin-bottom:15px;
+    font-size:42px;
+}
+
+.top-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.timer,
+.score{
+    background:white;
+    padding:12px 25px;
+    border-radius:20px;
+    font-size:28px;
+    font-weight:bold;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+.timer{
+    color:#ff3b3b;
+}
+
+.score{
+    color:#00a86b;
+}
+
+.instructions{
+    font-size:24px;
+    margin-bottom:20px;
+    color:#555;
+}
+
+.word-bank,
+.answer-area{
+    min-height:130px;
+    border:4px dashed #ffb3d9;
+    border-radius:25px;
+    padding:20px;
+    margin:20px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    align-items:center;
+}
+
+.word{
+    padding:14px 22px;
+    border-radius:25px;
+    color:white;
+    font-size:24px;
+    font-weight:bold;
+    cursor:pointer;
+    user-select:none;
+    animation:hop 1s infinite alternate;
+    transition:0.2s;
+}
+
+.word:hover{
+    transform:scale(1.1);
+}
+
+@keyframes hop{
+    from{
+        transform:translateY(0px);
+    }
+    to{
+        transform:translateY(-8px);
+    }
+}
+
+.buttons{
+    margin-top:15px;
+}
+
+button{
+    border:none;
+    padding:14px 30px;
+    border-radius:20px;
+    font-size:24px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:10px;
+    transition:0.2s;
+}
+
+button:hover{
+    transform:scale(1.08);
+}
+
+.check-btn{
+    background:#00c853;
+    color:white;
+}
+
+.next-btn{
+    background:#ff9800;
+    color:white;
+}
+
+.message{
+    min-height:80px;
+    font-size:34px;
+    font-weight:bold;
+    margin-top:15px;
+}
+
+.firework{
+    position:absolute;
+    font-size:50px;
+    animation:explode 1s forwards;
+    pointer-events:none;
+}
+
+@keyframes explode{
+    from{
+        transform:scale(0.5);
+        opacity:1;
+    }
+    to{
+        transform:scale(2);
+        opacity:0;
+    }
+}
+
+.correct-answer{
+    font-size:22px;
+    color:#333;
+    margin-top:10px;
+    line-height:1.5;
+}
+
+@media(max-width:768px){
+
+    h1{
+        font-size:30px;
+    }
+
+    .word{
+        font-size:18px;
+        padding:10px 15px;
+    }
+
+    .timer,
+    .score{
+        font-size:20px;
+    }
+
+    button{
+        font-size:18px;
+        padding:10px 20px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+
+    <h1>🎮 Reorder The Sentence 🎮</h1>
+
+    <div class="top-bar">
+        <div class="timer">
+            ⏰ Time: <span id="time">15</span>
+        </div>
+
+        <div class="score">
+            ⭐ Score: <span id="score">0</span>
+        </div>
+    </div>
+
+    <div class="instructions">
+        Put the words in the correct order!
+    </div>
+
+    <div class="word-bank" id="wordBank"></div>
+
+    <h2>👇 Your Answer 👇</h2>
+
+    <div class="answer-area" id="answerArea"></div>
+
+    <div class="buttons">
+        <button class="check-btn" onclick="checkAnswer()">
+            CHECK
+        </button>
+
+        <button class="next-btn" onclick="nextQuestion()">
+            NEXT
+        </button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+</div>
+
+<!-- Sounds -->
+
+<audio id="successSound"
+src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3">
+</audio>
+
+<audio id="failSound"
+src="https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3">
+</audio>
+
+<script>
+
+const sentences = [
+
+"Tom hasn't done the dishes yet",
+
+"They have already watered the plants",
+
+"Mum has already fed the dog",
+
+"Have your grandparents taken out the trash yet",
+
+"Has your brother mopped the floor yet",
+
+"My sister has already set the table"
+
+];
+
+let current = 0;
+let score = 0;
+let timer;
+let timeLeft = 15;
+let answered = false;
+
+const colors = [
+
+"#ff6b6b",
+"#4ecdc4",
+"#ff9f1c",
+"#6a4cff",
+"#00c853",
+"#ff4da6",
+"#00b8ff"
+
+];
+
+const wordBank = document.getElementById("wordBank");
+const answerArea = document.getElementById("answerArea");
+const message = document.getElementById("message");
+
+function shuffle(array){
+
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function createWords(sentence){
+
+    wordBank.innerHTML = "";
+    answerArea.innerHTML = "";
+    message.innerHTML = "";
+
+    answered = false;
+
+    let words = sentence.split(" ");
+
+    shuffle(words);
+
+    words.forEach(word => {
+
+        const div = document.createElement("div");
+
+        div.classList.add("word");
+
+        div.innerText = word;
+
+        div.style.background =
+            colors[Math.floor(Math.random()*colors.length)];
+
+        div.onclick = () => {
+
+            if(answered) return;
+
+            if(div.parentElement.id === "wordBank"){
+
+                answerArea.appendChild(div);
+
+            }else{
+
+                wordBank.appendChild(div);
+            }
+        };
+
+        wordBank.appendChild(div);
+    });
+}
+
+function startTimer(){
+
+    clearInterval(timer);
+
+    timeLeft = 15;
+
+    document.getElementById("time").innerText = timeLeft;
+
+    timer = setInterval(() => {
+
+        timeLeft--;
+
+        document.getElementById("time").innerText = timeLeft;
+
+        if(timeLeft <= 0){
+
+            clearInterval(timer);
+
+            if(!answered){
+
+                answered = true;
+
+                failEffect("⏰ TIME'S UP!");
+
+                showCorrectAnswer();
+            }
+        }
+
+    },1000);
+}
+
+function checkAnswer(){
+
+    if(answered) return;
+
+    answered = true;
+
+    clearInterval(timer);
+
+    let userAnswer = [...answerArea.children]
+        .map(el => el.innerText)
+        .join(" ");
+
+    let correct = sentences[current];
+
+    if(userAnswer.toLowerCase() === correct.toLowerCase()){
+
+        score++;
+
+        document.getElementById("score").innerText = score;
+
+        successEffect();
+
+    }else{
+
+        failEffect("❌ INCORRECT!");
+
+        showCorrectAnswer();
+    }
+}
+
+function successEffect(){
+
+    message.innerHTML = "🎉 CORRECT! HURRAY! 🎉";
+
+    message.style.color = "#00c853";
+
+    document.getElementById("successSound").play();
+
+    for(let i=0;i<20;i++){
+
+        const firework = document.createElement("div");
+
+        firework.classList.add("firework");
+
+        firework.innerHTML =
+            ["🎆","✨","🎉","🌟"][Math.floor(Math.random()*4)];
+
+        firework.style.left =
+            Math.random()*100 + "vw";
+
+        firework.style.top =
+            Math.random()*100 + "vh";
+
+        document.body.appendChild(firework);
+
+        setTimeout(() => {
+
+            firework.remove();
+
+        },1000);
+    }
+}
+
+function failEffect(text){
+
+    message.innerHTML = text + " 😭💥";
+
+    message.style.color = "#ff1744";
+
+    document.getElementById("failSound").play();
+}
+
+function showCorrectAnswer(){
+
+    const correct = sentences[current];
+
+    setTimeout(() => {
+
+        message.innerHTML +=
+
+        "<div class='correct-answer'>" +
+
+        "✅ Correct Answer:<br><b>" +
+
+        correct +
+
+        "</b></div>";
+
+    },500);
+}
+
+function nextQuestion(){
+
+    current++;
+
+    if(current >= sentences.length){
+
+        alert(
+            "🎉 GAME OVER!\n\nFinal Score: " +
+            score +
+            " / " +
+            sentences.length
+        );
+
+        current = 0;
+        score = 0;
+
+        document.getElementById("score").innerText = score;
+    }
+
+    loadQuestion();
+}
+
+function loadQuestion(){
+
+    createWords(sentences[current]);
+
+    startTimer();
+}
+
+loadQuestion();
+
+/* Cute Floating Background */
+
+for(let i=0;i<30;i++){
+
+    const bubble = document.createElement("div");
+
+    bubble.classList.add("bubble");
+
+    let size = Math.random()*90 + 20;
+
+    bubble.style.width = size + "px";
+
+    bubble.style.height = size + "px";
+
+    bubble.style.left = Math.random()*100 + "vw";
+
+    bubble.style.background =
+        colors[Math.floor(Math.random()*colors.length)];
+
+    bubble.style.animationDuration =
+        (Math.random()*10 + 8) + "s";
+
+    document.body.appendChild(bubble);
+}
+
+</script>
+
+</body>
+</html>
